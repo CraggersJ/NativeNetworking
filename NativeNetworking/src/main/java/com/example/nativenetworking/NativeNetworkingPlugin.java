@@ -46,11 +46,14 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+
+import kotlinx.coroutines.channels.Send;
 
 
 public class NativeNetworkingPlugin {
@@ -105,8 +108,6 @@ public class NativeNetworkingPlugin {
         }
 
         activity.requestPermissions(PERMISSIONS, 1);
-        GameStarted = false;
-        waitingForResponse = false;
     }
 
     public void scanForCentral(String code, String name)
@@ -118,6 +119,8 @@ public class NativeNetworkingPlugin {
             connecting = false;
             UUIDDictionaryCreator();
             bluetoothLeScanner.startScan(null, scanSettings, scanCallback);
+            GameStarted = false;
+            waitingForResponse = false;
             Log.d(TAG, "scan started");
         }  else {
             Log.e(TAG, "could not get scanner object");
@@ -134,6 +137,8 @@ public class NativeNetworkingPlugin {
         bluetoothLeAdvertiser = bluetoothAdapter.getBluetoothLeAdvertiser();
         myName = name;
         UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "NewPlayer", CreateJsonPlayerNameString(1, myName, true));
+        GameStarted = false;
+        waitingForResponse = false;
         Log.d(TAG, CreateJsonPlayerNameString(1, myName, true));
         if (bluetoothLeAdvertiser != null)
         {
@@ -286,7 +291,6 @@ public class NativeNetworkingPlugin {
 
         @Override
         public void onCharacteristicChanged (BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-            Log.d(TAG, "Characteristic Changed");
             if (UuidDictionary.get(characteristic.getUuid()) != null && !GameStarted) {
                 int userIndex = UuidDictionary.get(characteristic.getUuid());
                 networkInfo.playerInformation.put(userIndex, networkInfo.NewUser(new String(characteristic.getValue())));
@@ -310,20 +314,23 @@ public class NativeNetworkingPlugin {
                     }
 
                 }
-
-                //GameStarted = true;
+                gatt.requestMtu(185);
+                GameStarted = true;
             }
             else if (UuidDictionary.get(characteristic.getUuid()) != null) {
                 //Write to Unity
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "UpdatePlayerPosition", new String(characteristic.getValue()));
             }
         }
 
         @Override
         public void onCharacteristicWrite (BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status){
-            Log.d(TAG, "Reading this bitch");
-            UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "NewPlayer", CreateJsonPlayerNameString(myIndex, myName, true));
-            GetPlayerNames();
-            gatt.readCharacteristic(readQueue.get(0));
+            if (!GameStarted) {
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "NewPlayer", CreateJsonPlayerNameString(myIndex, myName, true));
+                GetPlayerNames();
+                gatt.readCharacteristic(readQueue.get(0));
+            }
+
         }
 
         @Override
@@ -353,7 +360,8 @@ public class NativeNetworkingPlugin {
     public void startGame()
     {
         Log.d(TAG, "running");
-        //GameStarted = true;
+        GameStarted = true;
+        bluetoothLeAdvertiser.stopAdvertising(advertiseCallback);
         BluetoothGattCharacteristic characteristic = bluetoothGattServer.getService(UUID.nameUUIDFromBytes(stringToByteArray("Players"))).getCharacteristic(UUID.nameUUIDFromBytes(stringToByteArray("StartGame")));
         characteristic.setValue(new byte[]{(byte)1});
         for (int i = 2; i <= NumberOfPlayers; i++) {
@@ -406,7 +414,6 @@ public class NativeNetworkingPlugin {
         @Override
         public void onConnectionStateChange(BluetoothDevice bluetoothDevice, int status, int newState) {
             bluetoothGattServer.setPreferredPhy(bluetoothDevice, BluetoothDevice.PHY_LE_2M_MASK, BluetoothDevice.PHY_LE_2M_MASK, BluetoothDevice.PHY_OPTION_NO_PREFERRED);
-
         }
 
         @Override
@@ -421,7 +428,6 @@ public class NativeNetworkingPlugin {
         @Override
         public void onCharacteristicReadRequest (BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic)
         {
-            Log.d(TAG, "Read Request Incoming");
             if (characteristic == bluetoothGattServer.getService(UUID.nameUUIDFromBytes(stringToByteArray("Players"))).getCharacteristic(UUID.nameUUIDFromBytes(stringToByteArray("Number")))) {
                 bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, new byte[]{(byte)(++NumberOfPlayers)});
                 networkInfo.playerInformation.put(NumberOfPlayers, networkInfo.NewUser("Player " + NumberOfPlayers));
@@ -440,7 +446,6 @@ public class NativeNetworkingPlugin {
 
         @Override
         public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId, BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
-            Log.d(TAG, "Write request received");
             if (!GameStarted) {
                 characteristic.setValue(value);
                 Log.d(TAG, "Number: " + UuidDictionary.get(characteristic.getUuid()) + ", Name: " + new String(value));
@@ -454,10 +459,12 @@ public class NativeNetworkingPlugin {
                 bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, stringToByteArray(myName));
             }
             else {
-                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "UpdatePlayerPosition", new String(characteristic.getValue()));
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "UpdatePlayerPosition", new String(value));
+                characteristic.setValue(value);
+                bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null);
                 for (int i = 2; i <= NumberOfPlayers; i++) {
                     if (i != UuidDictionary.get(characteristic.getUuid())) {
-                        //bluetoothGattServer.notifyCharacteristicChanged(networkInfo.playerInformation.get(i).bluetoothDevice, characteristic, false);
+                        bluetoothGattServer.notifyCharacteristicChanged(networkInfo.playerInformation.get(i).bluetoothDevice, characteristic, false);
                     }
                 }
             }
@@ -478,12 +485,16 @@ public class NativeNetworkingPlugin {
         catch (JSONException e) {return "";}
     }
 
-    public String CreateJsonPlayerPositionString(float positionX, float positionY)
+    public String CreateJsonPlayerPositionString(int playerIndex, float positionX, float positionY, float velocityX, float velocityY)
     {
         try {
+            DecimalFormat df = new DecimalFormat("###.###");
             String jsonString = new JSONObject()
-                    .put("positionX", positionX)
-                    .put("positionY", positionY)
+                    .put("playerIndex", playerIndex)
+                    .put("positionX", df.format(positionX))
+                    .put("positionY", df.format(positionY))
+                    .put("velocityX", df.format(velocityX))
+                    .put("velocityY", df.format(velocityY))
                     .toString();
 
             return jsonString;
@@ -491,18 +502,19 @@ public class NativeNetworkingPlugin {
         catch (JSONException e) {return "";}
     }
 
-    public void PlayerMovement(float positionX, float positionY)
+    public void PlayerMovement(float positionX, float positionY, float velocityX, float velocityY)
     {
-        /*if (bluetoothGattServer != null) {
-            bluetoothGattServer.getService(UUID.nameUUIDFromBytes(stringToByteArray("Game"))).getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)1})).setValue(stringToByteArray(CreateJsonPlayerPositionString(positionX, positionY)));
+        if (bluetoothGattServer != null) {
+            bluetoothGattServer.getService(UUID.nameUUIDFromBytes(stringToByteArray("Game"))).getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)1})).setValue(stringToByteArray(CreateJsonPlayerPositionString(1, positionX, positionY, velocityX, velocityY)));
             for (int i = 2; i <= NumberOfPlayers; i++) {
                 bluetoothGattServer.notifyCharacteristicChanged(networkInfo.playerInformation.get(i).bluetoothDevice, bluetoothGattServer.getService(UUID.nameUUIDFromBytes(stringToByteArray("Game"))).getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)1})), false);
             }
         }
         else {
-            bluetoothGattServices.get(SyncServiceIndex).getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)myIndex})).setValue(CreateJsonPlayerPositionString(positionX, positionY));
+            String send = CreateJsonPlayerPositionString(myIndex, positionX, positionY, velocityX, velocityY);
+            bluetoothGattServices.get(SyncServiceIndex).getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)myIndex})).setValue(send);
             bluetoothGatt.writeCharacteristic(bluetoothGattServices.get(SyncServiceIndex).getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)myIndex})));
-        }*/
+        }
 
     }
 
