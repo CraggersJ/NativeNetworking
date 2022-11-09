@@ -46,9 +46,12 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.sql.Time;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -89,6 +92,7 @@ public class NativeNetworkingPlugin {
     private Boolean connecting;
     private List<BluetoothGattCharacteristic> readQueue;
     private Boolean waitingForResponse;
+    private int GamePacketsReceived;
 
 
 
@@ -228,7 +232,7 @@ public class NativeNetworkingPlugin {
 
     public BluetoothGattService SyncServiceInitialisation(BluetoothGattService service) {
         for (int i = 1; i <= 8; i++) {
-            BluetoothGattCharacteristic bluetoothGattCharacteristic = new BluetoothGattCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)i}), BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE, BluetoothGattCharacteristic.PERMISSION_WRITE | BluetoothGattCharacteristic.PERMISSION_READ);
+            BluetoothGattCharacteristic bluetoothGattCharacteristic = new BluetoothGattCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)i}), BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE | BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE, BluetoothGattCharacteristic.PERMISSION_WRITE | BluetoothGattCharacteristic.PERMISSION_READ);
             UuidDictionary.put(bluetoothGattCharacteristic.getUuid(), i);
             service.addCharacteristic(bluetoothGattCharacteristic);
         }
@@ -308,6 +312,7 @@ public class NativeNetworkingPlugin {
                 for (int i = 1; i <= 8; i++) {
                     if (i <= networkInfo.playerInformationSize && i != myIndex) {
                         gatt.setCharacteristicNotification(bluetoothGattServiceSync.getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)i})), true);
+                        bluetoothGattServiceSync.getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)i})).setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
                     }
                     else {
                         gatt.setCharacteristicNotification(bluetoothGattServiceGame.getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)i})), false);
@@ -316,6 +321,7 @@ public class NativeNetworkingPlugin {
                 }
                 gatt.requestMtu(185);
                 GameStarted = true;
+                GamePacketsReceived = 0;
             }
             else if (UuidDictionary.get(characteristic.getUuid()) != null) {
                 //Write to Unity
@@ -364,9 +370,11 @@ public class NativeNetworkingPlugin {
         bluetoothLeAdvertiser.stopAdvertising(advertiseCallback);
         BluetoothGattCharacteristic characteristic = bluetoothGattServer.getService(UUID.nameUUIDFromBytes(stringToByteArray("Players"))).getCharacteristic(UUID.nameUUIDFromBytes(stringToByteArray("StartGame")));
         characteristic.setValue(new byte[]{(byte)1});
+        UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "StartGame", "");
         for (int i = 2; i <= NumberOfPlayers; i++) {
             bluetoothGattServer.notifyCharacteristicChanged(networkInfo.playerInformation.get(i).bluetoothDevice, characteristic, true);
         }
+        GamePacketsReceived = 0;
     }
 
     public void GetPlayerNames() {
@@ -461,7 +469,6 @@ public class NativeNetworkingPlugin {
             else {
                 UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "UpdatePlayerPosition", new String(value));
                 characteristic.setValue(value);
-                bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null);
                 for (int i = 2; i <= NumberOfPlayers; i++) {
                     if (i != UuidDictionary.get(characteristic.getUuid())) {
                         bluetoothGattServer.notifyCharacteristicChanged(networkInfo.playerInformation.get(i).bluetoothDevice, characteristic, false);
@@ -485,7 +492,7 @@ public class NativeNetworkingPlugin {
         catch (JSONException e) {return "";}
     }
 
-    public String CreateJsonPlayerPositionString(int playerIndex, float positionX, float positionY, float velocityX, float velocityY)
+    public String CreateJsonPlayerPositionString(int playerIndex, float positionX, float positionY, float velocityX, float velocityY, int gravityBit, float timeSinceStart)
     {
         try {
             DecimalFormat df = new DecimalFormat("###.###");
@@ -495,6 +502,8 @@ public class NativeNetworkingPlugin {
                     .put("positionY", df.format(positionY))
                     .put("velocityX", df.format(velocityX))
                     .put("velocityY", df.format(velocityY))
+                    .put("gravityBit", df.format(gravityBit))
+                    .put("timeAtSend", timeSinceStart)
                     .toString();
 
             return jsonString;
@@ -502,16 +511,16 @@ public class NativeNetworkingPlugin {
         catch (JSONException e) {return "";}
     }
 
-    public void PlayerMovement(float positionX, float positionY, float velocityX, float velocityY)
+    public void PlayerMovement(float positionX, float positionY, float velocityX, float velocityY, int gravityBit, float timeSinceStart)
     {
         if (bluetoothGattServer != null) {
-            bluetoothGattServer.getService(UUID.nameUUIDFromBytes(stringToByteArray("Game"))).getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)1})).setValue(stringToByteArray(CreateJsonPlayerPositionString(1, positionX, positionY, velocityX, velocityY)));
+            bluetoothGattServer.getService(UUID.nameUUIDFromBytes(stringToByteArray("Game"))).getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)1})).setValue(stringToByteArray(CreateJsonPlayerPositionString(1, positionX, positionY, velocityX, velocityY, gravityBit, timeSinceStart)));
             for (int i = 2; i <= NumberOfPlayers; i++) {
                 bluetoothGattServer.notifyCharacteristicChanged(networkInfo.playerInformation.get(i).bluetoothDevice, bluetoothGattServer.getService(UUID.nameUUIDFromBytes(stringToByteArray("Game"))).getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)1})), false);
             }
         }
         else {
-            String send = CreateJsonPlayerPositionString(myIndex, positionX, positionY, velocityX, velocityY);
+            String send = CreateJsonPlayerPositionString(myIndex, positionX, positionY, velocityX, velocityY, gravityBit, timeSinceStart);
             bluetoothGattServices.get(SyncServiceIndex).getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)myIndex})).setValue(send);
             bluetoothGatt.writeCharacteristic(bluetoothGattServices.get(SyncServiceIndex).getCharacteristic(UUID.nameUUIDFromBytes(new byte[]{(byte)myIndex})));
         }
