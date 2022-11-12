@@ -333,7 +333,10 @@ public class NativeNetworkingPlugin {
 
     private HashMap<Integer, BluetoothDevice> clientDevices;
     private HashMap<BluetoothDevice, Integer> clientDeviceIndexes;
+    private HashMap<BluetoothDevice, Boolean> clientJoiningInProgress;
     private int NumberOfPlayers;
+    private int numberOfPlayersJoiningInProgress;
+
 
 
     public void AdvertiseForPeripherals(String code, String name)
@@ -342,6 +345,7 @@ public class NativeNetworkingPlugin {
         myName = name;
         addServiceFails = 0;
         amHost = true;
+        numberOfPlayersJoiningInProgress = 0;
 
         bluetoothGattServer = bluetoothManager.openGattServer(activity, bluetoothGattServerCallback);
         bluetoothGattServer.addService(gameServiceConstructor());
@@ -377,6 +381,7 @@ public class NativeNetworkingPlugin {
             super.onStartSuccess(settingsInEffect);
             clientDevices = new HashMap<>();
             clientDeviceIndexes = new HashMap<>();
+            clientJoiningInProgress = new HashMap<>();
             bluetoothGattServer.getService(GAME_SERVICE).getCharacteristic(PLAYER_1_NAME).setValue(myName);
             UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "NewPlayer", CreateJsonPlayerNameString(1, myName, true));
             NumberOfPlayers = 1;
@@ -393,12 +398,21 @@ public class NativeNetworkingPlugin {
 
 
     private final BluetoothGattServerCallback bluetoothGattServerCallback = new BluetoothGattServerCallback() {
-
+        @Override
+        public void onMtuChanged (BluetoothDevice device, int mtu)
+        {
+            clientJoiningInProgress.put(device, false);
+            numberOfPlayersJoiningInProgress--;
+            if (numberOfPlayersJoiningInProgress == 0)
+            {
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "ReadyToStart", "");
+            }
+        }
 
 
         @Override
         public void onConnectionStateChange(BluetoothDevice bluetoothDevice, int status, int newState) {
-            if (newState == BluetoothProfile.STATE_CONNECTED && NumberOfPlayers <= 8)
+            if (newState == BluetoothProfile.STATE_CONNECTED && NumberOfPlayers <= 4)
             {
                 bluetoothGattServer.setPreferredPhy(bluetoothDevice, BluetoothDevice.PHY_LE_2M_MASK, BluetoothDevice.PHY_LE_2M_MASK, BluetoothDevice.PHY_OPTION_NO_PREFERRED);
                 for (int i = 2; i <= 8; i++)
@@ -409,6 +423,10 @@ public class NativeNetworkingPlugin {
                         clientDevices.put(i, bluetoothDevice);
                         clientDeviceIndexes.put(bluetoothDevice, i);
                         NumberOfPlayers++;
+                        if (++numberOfPlayersJoiningInProgress == 1)
+                        {
+                            UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "DisableGameStart", "");
+                        }
                         break;
                     }
                 }
@@ -420,6 +438,18 @@ public class NativeNetworkingPlugin {
                 clientDeviceIndexes.remove(bluetoothDevice);
                 clientDevices.remove(playerIndex);
                 NumberOfPlayers--;
+                if (clientJoiningInProgress.get(bluetoothDevice))
+                {
+                    if (--numberOfPlayersJoiningInProgress == 0 && NumberOfPlayers != 1)
+                    {
+                        UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "ReadyToStart", "");
+                    }
+                }
+
+                if (NumberOfPlayers == 1)
+                {
+                    UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "DisableGameStart", "");
+                }
                 bluetoothGattServer.getService(GAME_SERVICE).getCharacteristic(PLAYER_NAMES.get(playerIndex-1)).setValue("A");
                 UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "RemovePlayer", Integer.toString(playerIndex));
             }
