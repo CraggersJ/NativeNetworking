@@ -1,8 +1,5 @@
 package com.example.nativenetworking;
 
-import static androidx.core.app.ActivityCompat.requestPermissions;
-
-import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -16,11 +13,6 @@ import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanFilter;
-import android.content.pm.PackageManager;
-import android.net.Network;
-import android.nfc.Tag;
-import android.os.Build;
 import android.os.ParcelUuid;
 import android.util.Log;
 import android.content.*;
@@ -32,31 +24,17 @@ import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.bluetooth.le.ScanSettings;
 
-
-import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 import com.unity3d.player.UnityPlayer;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.sql.Time;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
-
-import kotlinx.coroutines.channels.Send;
 
 
 public class NativeNetworkingPlugin {
@@ -75,28 +53,17 @@ public class NativeNetworkingPlugin {
     private static final UUID PLAYER_2_NAME = UUID.fromString("14a3814a-6283-4c39-9488-1080103818bb");
     private static final UUID PLAYER_3_NAME = UUID.fromString("40c8e0ea-336d-479f-ab69-4340d9201037");
     private static final UUID PLAYER_4_NAME = UUID.fromString("96341701-e517-4f38-a8e3-dc03fd629ad4");
-    private static final UUID PLAYER_5_NAME = UUID.fromString("70c2f654-8552-4317-afbe-fba0442f2d47");
-    private static final UUID PLAYER_6_NAME = UUID.fromString("7f0b9e25-762a-4d4c-a56d-213a38b6575d");
-    private static final UUID PLAYER_7_NAME = UUID.fromString("c3935c4e-0f65-46dc-b78e-87820072d727");
-    private static final UUID PLAYER_8_NAME = UUID.fromString("9e5939d6-318c-4bb9-8cf8-175b2398f58f");
 
     private static final UUID GAME_DATA_SERVICE = UUID.fromString("951baba4-5da5-4223-8c58-cd050645608a");
     private static final UUID PLAYER_1_DATA = UUID.fromString("50e3a222-e55f-4df4-94d8-e8c64f756fda");
     private static final UUID PLAYER_2_DATA = UUID.fromString("615942fe-9852-41d4-807d-34f17fc7ecf0");
     private static final UUID PLAYER_3_DATA = UUID.fromString("54a87a82-011f-4fa0-8fe3-0689abed490f");
     private static final UUID PLAYER_4_DATA = UUID.fromString("e34294bd-ddef-4e8e-b6f0-1e9cfd32de8a");
-    private static final UUID PLAYER_5_DATA = UUID.fromString("d366d84b-c610-4f3a-93a7-d338b4614869");
-    private static final UUID PLAYER_6_DATA = UUID.fromString("34fbf2cd-62c7-4d67-b916-396b874d555e");
-    private static final UUID PLAYER_7_DATA = UUID.fromString("256c1c8a-5cee-4e0b-a729-a739ece0a3c0");
-    private static final UUID PLAYER_8_DATA = UUID.fromString("156796c6-cd0e-4779-a124-6c7ef94b363b");
     private static final UUID PLAYER_1_FINISH = UUID.fromString("a892d2e4-4c43-4285-81e4-8ea582f963b4");
     private static final UUID PLAYER_2_FINISH = UUID.fromString("cbc5c5bc-b59a-49d3-bb4b-df19e603280f");
     private static final UUID PLAYER_3_FINISH = UUID.fromString("1d0520f5-7612-4d8c-b50c-bfabcf666f0f");
     private static final UUID PLAYER_4_FINISH = UUID.fromString("af5b6936-a764-403e-a734-bb55080a820e");
-    private static final UUID PLAYER_5_FINISH = UUID.fromString("bc91ca0c-9940-4d40-abc7-180cae8b0494");
-    private static final UUID PLAYER_6_FINISH = UUID.fromString("90958d7e-2561-44e0-8622-81015267cd5a");
-    private static final UUID PLAYER_7_FINISH = UUID.fromString("ce20af40-b123-40c5-8354-295b176e45cf");
-    private static final UUID PLAYER_8_FINISH = UUID.fromString("3aff8a7f-a1f2-48a0-9d1d-de2b4f894dc2");
+
 
     private static final List<UUID> PLAYER_NAMES = new ArrayList<UUID>() {
         {
@@ -104,10 +71,6 @@ public class NativeNetworkingPlugin {
             add(PLAYER_2_NAME);
             add(PLAYER_3_NAME);
             add(PLAYER_4_NAME);
-            add(PLAYER_5_NAME);
-            add(PLAYER_6_NAME);
-            add(PLAYER_7_NAME);
-            add(PLAYER_8_NAME);
         }
     };
 
@@ -117,10 +80,6 @@ public class NativeNetworkingPlugin {
             add(PLAYER_2_DATA);
             add(PLAYER_3_DATA);
             add(PLAYER_4_DATA);
-            add(PLAYER_5_DATA);
-            add(PLAYER_6_DATA);
-            add(PLAYER_7_DATA);
-            add(PLAYER_8_DATA);
         }
     };
 
@@ -130,10 +89,6 @@ public class NativeNetworkingPlugin {
             add(PLAYER_2_FINISH);
             add(PLAYER_3_FINISH);
             add(PLAYER_4_FINISH);
-            add(PLAYER_5_FINISH);
-            add(PLAYER_6_FINISH);
-            add(PLAYER_7_FINISH);
-            add(PLAYER_8_FINISH);
         }
     };
 
@@ -152,18 +107,6 @@ public class NativeNetworkingPlugin {
             put(PLAYER_4_NAME, 4);
             put(PLAYER_4_DATA, 4);
             put(PLAYER_4_FINISH, 4);
-            put(PLAYER_5_NAME, 5);
-            put(PLAYER_5_DATA, 5);
-            put(PLAYER_5_FINISH, 5);
-            put(PLAYER_6_NAME, 6);
-            put(PLAYER_6_DATA, 6);
-            put(PLAYER_6_FINISH, 6);
-            put(PLAYER_7_NAME, 7);
-            put(PLAYER_7_DATA, 7);
-            put(PLAYER_7_FINISH, 7);
-            put(PLAYER_8_NAME, 8);
-            put(PLAYER_8_DATA, 8);
-            put(PLAYER_8_FINISH, 8);
         }
     };
 
@@ -175,7 +118,7 @@ public class NativeNetworkingPlugin {
 
 
 
-    private Activity activity;
+    private final Activity activity;
 
     private static final String TAG = "NativeNetworking";
     private static final String GAME_OBJECT_NAME = "Network Manager";
@@ -184,7 +127,7 @@ public class NativeNetworkingPlugin {
     private BluetoothAdapter bluetoothAdapter;
 
     private final static int REQUEST_ENABLE_BT = 1;
-    private String[] PERMISSIONS = {
+    private final String[] PERMISSIONS = {
             android.Manifest.permission.BLUETOOTH,
             android.Manifest.permission.BLUETOOTH_ADMIN,
             android.Manifest.permission.BLUETOOTH_ADVERTISE,
@@ -209,7 +152,10 @@ public class NativeNetworkingPlugin {
     public NativeNetworkingPlugin(Activity activity)
     {
         this.activity = activity;
+    }
 
+    public void CheckBluetoothAndPermissions()
+    {
         bluetoothManager = activity.getSystemService(BluetoothManager.class);
         bluetoothAdapter = bluetoothManager.getAdapter();
 
@@ -220,8 +166,6 @@ public class NativeNetworkingPlugin {
 
         activity.requestPermissions(PERMISSIONS, 1);
     }
-
-
 
     private byte[] intToByteArray(int i)
     {
@@ -271,7 +215,19 @@ public class NativeNetworkingPlugin {
         catch (JSONException e) {return "";}
     }
 
+    public String CreateFinishTimeString(int playerIndex, float finishTime)
+    {
+        try {
+            DecimalFormat df = new DecimalFormat("###.###");
+            String jsonString = new JSONObject()
+                    .put("pI", playerIndex)
+                    .put("fT", df.format(finishTime))
+                    .toString();
 
+            return jsonString;
+        }
+        catch (JSONException e) {return "";}
+    }
 
     public void PlayerMovement(float positionX, float positionY, float velocityX, float velocityY, int gravityBit)
     {
@@ -291,6 +247,23 @@ public class NativeNetworkingPlugin {
 
     }
 
+    public void FinishedRace(float finishTime)
+    {
+        if (amHost) {
+            String json = CreateFinishTimeString(1, finishTime);
+            bluetoothGattServer.getService(GAME_DATA_SERVICE).getCharacteristic(PLAYER_1_FINISH).setValue(json);
+            NewPlayerFinished(json);
+        }
+        else {
+            BluetoothGattCharacteristic myFinishTimeCharacteristic = bluetoothGattServices.get(gameDataServiceIndex).getCharacteristic(PLAYER_FINISH_TIMES.get(myIndex-1));
+            String json = CreateFinishTimeString(myIndex, finishTime);
+            myFinishTimeCharacteristic.setValue(json);
+            bluetoothGatt.writeCharacteristic(myFinishTimeCharacteristic);
+            UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "PlayerFinishTime", json);
+        }
+
+    }
+
 
 
     public void LeaveGame()
@@ -299,6 +272,7 @@ public class NativeNetworkingPlugin {
         {
             bluetoothGattServer.close();
             bluetoothLeAdvertiser.stopAdvertising(advertiseCallback);
+            amHost = false;
         }
         else
         {
@@ -314,6 +288,8 @@ public class NativeNetworkingPlugin {
                 connecting = false;
             }
         }
+
+        UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "LeaveGame", "");
     }
 
 
@@ -336,6 +312,10 @@ public class NativeNetworkingPlugin {
     private HashMap<BluetoothDevice, Boolean> clientJoiningInProgress;
     private int NumberOfPlayers;
     private int numberOfPlayersJoiningInProgress;
+    private int numberOfPlayersFinished;
+    private boolean isGameEnding;
+
+    private HashMap<BluetoothDevice, Boolean> clientsFinished;
 
 
 
@@ -379,12 +359,6 @@ public class NativeNetworkingPlugin {
         @Override
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
             super.onStartSuccess(settingsInEffect);
-            clientDevices = new HashMap<>();
-            clientDeviceIndexes = new HashMap<>();
-            clientJoiningInProgress = new HashMap<>();
-            bluetoothGattServer.getService(GAME_SERVICE).getCharacteristic(PLAYER_1_NAME).setValue(myName);
-            UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "NewPlayer", CreateJsonPlayerNameString(1, myName, true));
-            NumberOfPlayers = 1;
 
         }
 
@@ -415,7 +389,7 @@ public class NativeNetworkingPlugin {
             if (newState == BluetoothProfile.STATE_CONNECTED && NumberOfPlayers <= 4)
             {
                 bluetoothGattServer.setPreferredPhy(bluetoothDevice, BluetoothDevice.PHY_LE_2M_MASK, BluetoothDevice.PHY_LE_2M_MASK, BluetoothDevice.PHY_OPTION_NO_PREFERRED);
-                for (int i = 2; i <= 8; i++)
+                for (int i = 2; i <= 4; i++)
                 {
                     if (!clientDevices.containsKey(i))
                     {
@@ -433,7 +407,6 @@ public class NativeNetworkingPlugin {
             }
             else if (newState == BluetoothProfile.STATE_DISCONNECTED)
             {
-
                 int playerIndex = clientDeviceIndexes.get(bluetoothDevice);
                 clientDeviceIndexes.remove(bluetoothDevice);
                 clientDevices.remove(playerIndex);
@@ -450,8 +423,31 @@ public class NativeNetworkingPlugin {
                 {
                     UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "DisableGameStart", "");
                 }
+
                 bluetoothGattServer.getService(GAME_SERVICE).getCharacteristic(PLAYER_NAMES.get(playerIndex-1)).setValue("A");
+
+                for (Integer key : clientDevices.keySet())
+                {
+                    bluetoothGattServer.notifyCharacteristicChanged(clientDevices.get(key), bluetoothGattServer.getService(GAME_SERVICE).getCharacteristic(PLAYER_NAMES.get(playerIndex-1)), true);
+                }
+
                 UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "RemovePlayer", Integer.toString(playerIndex));
+
+                if (clientsFinished.containsKey(bluetoothDevice))
+                {
+                    clientsFinished.remove(bluetoothDevice);
+                    numberOfPlayersFinished--;
+                }
+
+                if (NumberOfPlayers == numberOfPlayersFinished)
+                {
+                    EndGame();
+                }
+                else if (!isGameEnding && numberOfPlayersFinished >= NumberOfPlayers/2.0f)
+                {
+                    isGameEnding = true;
+                    UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "StartEndGameCountdown", "");
+                }
             }
         }
 
@@ -465,6 +461,12 @@ public class NativeNetworkingPlugin {
             else if (status == BluetoothGatt.GATT_SUCCESS && service.getUuid().equals(GAME_DATA_SERVICE))
             {
                 bluetoothLeAdvertiser = bluetoothAdapter.getBluetoothLeAdvertiser();
+                clientDevices = new HashMap<>();
+                clientDeviceIndexes = new HashMap<>();
+                clientJoiningInProgress = new HashMap<>();
+                bluetoothGattServer.getService(GAME_SERVICE).getCharacteristic(PLAYER_1_NAME).setValue(myName);
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "NewPlayer", CreateJsonPlayerNameString(1, myName, true));
+                NumberOfPlayers = 1;
                 bluetoothLeAdvertiser.startAdvertising(advertiseSettings, createAdvertisingPacket(scanCode), advertiseCallback);
             }
             else if (status != BluetoothGatt.GATT_SUCCESS)
@@ -491,6 +493,7 @@ public class NativeNetworkingPlugin {
             }
             else
             {
+                Log.d(TAG, new String(characteristic.getValue()));
                 bluetoothGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, characteristic.getValue());
             }
         }
@@ -523,13 +526,41 @@ public class NativeNetworkingPlugin {
                     }
                 }
             }
+            else if (PLAYER_FINISH_TIMES.contains(characteristic.getUuid()))
+            {
+                bluetoothGattServer.sendResponse(clientDevices.get(UUID_TO_PLAYER_INDEX.get(characteristic.getUuid())), requestId, BluetoothGatt.GATT_SUCCESS, 0, value);
+                NewPlayerFinished(new String(value));
+                clientsFinished.put(device, true);
+            }
         }
     };
 
 
+    private void NewPlayerFinished(String json)
+    {
+        UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "PlayerFinishTime", json);
+
+        if (++numberOfPlayersFinished == NumberOfPlayers)
+        {
+            EndGame();
+        }
+        else if (!isGameEnding && numberOfPlayersFinished >= NumberOfPlayers/2.0)
+        {
+            isGameEnding = true;
+            UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "StartEndGameCountdown", "");
+        }
+    }
 
     public void StartGame()
     {
+        numberOfPlayersFinished = 0;
+        isGameEnding = false;
+        clientsFinished = new HashMap<>();
+        for (int i = 0; i < 4; i++)
+        {
+            BluetoothGattCharacteristic finishTimeCharacteristic = bluetoothGattServer.getService(GAME_DATA_SERVICE).getCharacteristic(PLAYER_FINISH_TIMES.get(i));
+            finishTimeCharacteristic.setValue(CreateFinishTimeString(i+1, 0.0f));
+        }
         BluetoothGattCharacteristic startGameCharacteristic = bluetoothGattServer.getService(GAME_SERVICE).getCharacteristic(START_GAME);
         startGameCharacteristic.setValue(new byte[]{(byte)1});
         UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "StartGame", "");
@@ -553,7 +584,21 @@ public class NativeNetworkingPlugin {
         }
     }
 
+    public void RestartAdvertising()
+    {
+        bluetoothLeAdvertiser.startAdvertising(advertiseSettings, createAdvertisingPacket(scanCode), advertiseCallback);
+    }
 
+    public void SelectLevel(int levelIndex)
+    {
+        BluetoothGattCharacteristic levelCharacteristic = bluetoothGattServer.getService(GAME_SERVICE).getCharacteristic(NEXT_MAP);
+        levelCharacteristic.setValue(String.valueOf(levelIndex));
+        UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "SetNextLevel", String.valueOf(levelIndex));
+        for (Integer key : clientDevices.keySet())
+        {
+            bluetoothGattServer.notifyCharacteristicChanged(clientDevices.get(key), levelCharacteristic, true);
+        }
+    }
 
     private BluetoothGattService gameServiceConstructor()
     {
@@ -565,9 +610,11 @@ public class NativeNetworkingPlugin {
         startGameCharacteristic.setValue(new byte[]{(byte)0});
         bluetoothGattService.addCharacteristic(startGameCharacteristic);
 
-        bluetoothGattService.addCharacteristic(new BluetoothGattCharacteristic(NEXT_MAP, BluetoothGattCharacteristic.PROPERTY_READ, BluetoothGattCharacteristic.PERMISSION_READ));
+        BluetoothGattCharacteristic nextMapCharacteristic = new BluetoothGattCharacteristic(NEXT_MAP, BluetoothGattCharacteristic.PROPERTY_NOTIFY | BluetoothGattCharacteristic.PROPERTY_READ, BluetoothGattCharacteristic.PERMISSION_READ);
+        nextMapCharacteristic.setValue("1");
+        bluetoothGattService.addCharacteristic(nextMapCharacteristic);
 
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 4; i++)
         {
             BluetoothGattCharacteristic playerINameCharacteristic = new BluetoothGattCharacteristic(PLAYER_NAMES.get(i), BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_NOTIFY | BluetoothGattCharacteristic.PROPERTY_WRITE, BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_WRITE);
             playerINameCharacteristic.setValue("A");
@@ -583,10 +630,12 @@ public class NativeNetworkingPlugin {
     {
         BluetoothGattService bluetoothGattService = new BluetoothGattService(GAME_DATA_SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY);
 
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 4; i++)
         {
             bluetoothGattService.addCharacteristic(new BluetoothGattCharacteristic(PLAYER_DATA.get(i), BluetoothGattCharacteristic.PROPERTY_NOTIFY | BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE, BluetoothGattCharacteristic.PERMISSION_WRITE));
-            bluetoothGattService.addCharacteristic(new BluetoothGattCharacteristic(PLAYER_FINISH_TIMES.get(i), BluetoothGattCharacteristic.PROPERTY_NOTIFY | BluetoothGattCharacteristic.PROPERTY_WRITE, BluetoothGattCharacteristic.PERMISSION_WRITE));
+            BluetoothGattCharacteristic playerIFinishCharacteristic = new BluetoothGattCharacteristic(PLAYER_FINISH_TIMES.get(i), BluetoothGattCharacteristic.PROPERTY_NOTIFY | BluetoothGattCharacteristic.PROPERTY_WRITE | BluetoothGattCharacteristic.PROPERTY_READ , BluetoothGattCharacteristic.PERMISSION_WRITE | BluetoothGattCharacteristic.PERMISSION_READ);
+            playerIFinishCharacteristic.setValue("A");
+            bluetoothGattService.addCharacteristic(playerIFinishCharacteristic);
         }
 
         return bluetoothGattService;
@@ -685,15 +734,16 @@ public class NativeNetworkingPlugin {
                     bluetoothLeScanner.stopScan(scanCallback);
                     gatt.discoverServices();
                 }
-                else if (newState == BluetoothProfile.STATE_DISCONNECTED)
+                else if (newState != BluetoothProfile.STATE_CONNECTING)
                 {
+                    UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "LeaveGame", "");
                     gatt.close();
-                    UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "LeftGame", "");
                 }
             }
             else
             {
                 UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "NetworkErrorLog", "5");
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "LeaveGame", "");
                 gatt.close();
             }
         }
@@ -722,23 +772,25 @@ public class NativeNetworkingPlugin {
             }
             else if (characteristic.getUuid().equals(NEXT_MAP))
             {
-                // Set next map.
+                // Set next map
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "SetNextLevel", new String(characteristic.getValue()));
                 bluetoothGatt.setCharacteristicNotification(readQueue.remove(0), true);
+                bluetoothGatt.setCharacteristicNotification(bluetoothGattServices.get(gameServiceIndex).getCharacteristic(START_GAME), true);
+                gatt.requestMtu(185);
+
+            }
+            else if (PLAYER_FINISH_TIMES.contains(characteristic.getUuid()))
+            {
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "PlayerFinishTime", new String(characteristic.getValue()));
 
                 if (readQueue.size() != 0)
                 {
-                    gatt.readCharacteristic(readQueue.get(0));
+                    bluetoothGatt.readCharacteristic(readQueue.remove(0));
                 }
-            }
-            else if (characteristic.getUuid().equals(START_GAME))
-            {
-                if (characteristic.getValue().equals(intToByteArray(1)))
+                else
                 {
-                    UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "StartGame", "");
+                    UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "EndGame", "");
                 }
-                readQueue.remove(0);
-                bluetoothGatt.setCharacteristicNotification(characteristic, true);
-                gatt.requestMtu(185);
             }
         }
 
@@ -746,9 +798,18 @@ public class NativeNetworkingPlugin {
         public void onCharacteristicChanged (BluetoothGatt gatt, BluetoothGattCharacteristic characteristic)
         {
             if (PLAYER_NAMES.contains(characteristic.getUuid())) {
-                int userIndex = UUID_TO_PLAYER_INDEX.get(characteristic.getUuid());
-                bluetoothGatt.setCharacteristicNotification(bluetoothGattServices.get(gameDataServiceIndex).getCharacteristic(PLAYER_DATA.get(userIndex-1)), true);
-                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "NewPlayer", CreateJsonPlayerNameString(userIndex, new String(characteristic.getValue()), false));
+                if ((new String(characteristic.getValue())).equals("A"))
+                {
+                    int userIndex = UUID_TO_PLAYER_INDEX.get(characteristic.getUuid());
+                    bluetoothGatt.setCharacteristicNotification(bluetoothGattServices.get(gameDataServiceIndex).getCharacteristic(PLAYER_DATA.get(userIndex-1)), false);
+                    UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "RemovePlayer", Integer.toString(userIndex));
+                }
+                else
+                {
+                    int userIndex = UUID_TO_PLAYER_INDEX.get(characteristic.getUuid());
+                    bluetoothGatt.setCharacteristicNotification(bluetoothGattServices.get(gameDataServiceIndex).getCharacteristic(PLAYER_DATA.get(userIndex-1)), true);
+                    UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "NewPlayer", CreateJsonPlayerNameString(userIndex, new String(characteristic.getValue()), false));
+                }
             }
             else if (characteristic.getUuid().equals(START_GAME))
             {
@@ -758,11 +819,17 @@ public class NativeNetworkingPlugin {
                 }
                 else
                 {
-                    UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "EndGame", "");
+                    Log.d(TAG,"Ending Game");
+                    GetFinishTimes();
+                    bluetoothGatt.readCharacteristic(readQueue.remove(0));
                 }
             }
             else if (PLAYER_DATA.contains(characteristic.getUuid())) {
                 UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "UpdatePlayerPosition", new String(characteristic.getValue()));
+            }
+            else if (characteristic.getUuid().equals(NEXT_MAP))
+            {
+                UnityPlayer.UnitySendMessage(GAME_OBJECT_NAME, "SetNextLevel", new String(characteristic.getValue()));
             }
         }
 
@@ -804,17 +871,31 @@ public class NativeNetworkingPlugin {
                 }
             }
         }
+
+        @Override
+        public void onServiceChanged (BluetoothGatt gatt)
+        {
+            gatt.disconnect();
+        }
     }
     ;
 
     public void GetPlayerNames() {
         readQueue = new ArrayList<>();
-        for (int i = 1; i <= 8; i++) {
+        for (int i = 1; i <= 4; i++) {
             if (i != myIndex) {
                 readQueue.add(bluetoothGattServices.get(gameServiceIndex).getCharacteristic(PLAYER_NAMES.get(i-1)));
             }
         }
         readQueue.add(bluetoothGattServices.get(gameServiceIndex).getCharacteristic(NEXT_MAP));
-        readQueue.add(bluetoothGattServices.get(gameServiceIndex).getCharacteristic(START_GAME));
+    }
+
+    public void GetFinishTimes() {
+        readQueue = new ArrayList<>();
+        for (int i = 1; i <= 4; i++) {
+            if (i != myIndex) {
+                readQueue.add(bluetoothGattServices.get(gameDataServiceIndex).getCharacteristic(PLAYER_FINISH_TIMES.get(i-1)));
+            }
+        }
     }
 }
